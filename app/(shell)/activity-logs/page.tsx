@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { LogQueryProvider } from '@/components/dashboard/LogQueryProvider';
 import { SearchField } from '@/components/dashboard/SearchField';
 import { ActivityLogsScreen } from '@/components/logs/ActivityLogsScreen';
+import { ReplayLink } from '@/components/replay/ReplayLink';
 import { Screen } from '@/components/shell/Screen';
 import { parseLogQuery, toSearchString, type RawSearchParams, type StatedKey } from '@/lib/logQuery';
 
@@ -77,7 +78,12 @@ export default async function ActivityLogsPage({ searchParams }: ActivityLogsPag
       <Screen
         title="Activity Logs"
         subtitle="Every log your crew has recorded"
-        actions={<SearchField />}
+        actions={
+          <>
+            <ReplayLink />
+            <SearchField />
+          </>
+        }
       >
         <ActivityLogsScreen
           logs={logs}

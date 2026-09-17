@@ -398,6 +398,8 @@ export interface NavItem {
 export type NavIcon =
   | 'chart-line'
   | 'audio-lines'
+  // The Day Replay's rail icon. Not in the Figma, which draws no such screen.
+  | 'play'
   | 'map'
   | 'book-check'
   | 'files'

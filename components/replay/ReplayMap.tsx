@@ -9,8 +9,10 @@ import {
   clockLabel,
   durationLabel,
   restrictionPhaseAt,
+  seedFrom,
+  shiftProgress,
+  workerPosition,
   type ReplayDay,
-  type ReplayPresence,
   type ReplayRestriction,
 } from '@/lib/replay';
 
@@ -71,8 +73,8 @@ export function ReplayMap({
     }
   }
 
-  // Two people on one block would sit on top of each other, so they fan out.
-  const crowd = new Map<string, number>();
+  // Field labels are drawn once per block, not once per log on it.
+  const labelled = new Set<string>();
 
   return (
     <div className="field-map-image relative w-full overflow-hidden rounded-[14px] shadow-map-frame">
@@ -145,8 +147,8 @@ export function ReplayMap({
         const id = 'logId' in entry ? entry.fieldId : entry.id;
         const name = 'logId' in entry ? entry.fieldName : entry.name;
         const plot = entry.plot;
-        if (crowd.has(`label:${id}`)) return null;
-        crowd.set(`label:${id}`, 1);
+        if (labelled.has(id)) return null;
+        labelled.add(id);
 
         return (
           <span
@@ -165,53 +167,81 @@ export function ReplayMap({
         );
       })}
 
-      {/* The people. */}
+      {/*
+        The people, borrowed from Find My.
+
+        That interface solves exactly this problem — a person on a map, moving,
+        identifiable at a glance, without the marker swallowing the ground it is
+        standing on. The pieces worth taking: a circular avatar with a white
+        ring so it reads against any terrain, the name in a small capsule rather
+        than floating text, a soft halo that says "this is live", and movement
+        that eases rather than teleports.
+
+        The position comes from `workerPosition`, so a dot traverses its block
+        over the shift instead of standing in the middle of it for four hours.
+      */}
       <AnimatePresence>
         {active.map((one) => {
-          const seen = crowd.get(one.fieldId) ?? 0;
-          crowd.set(one.fieldId, seen + 1);
           const flagged = incursionLogIds.includes(one.logId);
+          const at = workerPosition(
+            one.plot,
+            shiftProgress(one, minute),
+            seedFrom(one.logId)
+          );
 
           return (
             <motion.button
               key={one.logId}
               type="button"
-              layout
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.6 }}
-              transition={SPRING_SOFT}
+              initial={{ opacity: 0, scale: 0.4 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                left: pct(at.x, DESIGN_FRAME.width),
+                top: pct(at.y, DESIGN_FRAME.height),
+              }}
+              exit={{ opacity: 0, scale: 0.4 }}
+              // Position eases, the entrance springs. A linear tween on the
+              // coordinates is what makes a walk look like a walk — a spring
+              // here overshoots every row end and reads as stumbling.
+              transition={{
+                left: { duration: 0.35, ease: 'linear' },
+                top: { duration: 0.35, ease: 'linear' },
+                opacity: EASE_QUICK,
+                scale: SPRING_SOFT,
+              }}
               onClick={() => onSelectLog(one.logId)}
               title={`${one.employeeName} — ${one.activityName.toLowerCase()} on ${one.fieldName}, ${clockLabel(one.startMinute)}–${clockLabel(one.endMinute)}`}
               aria-label={`${one.employeeName}, ${one.activityName} on ${one.fieldName}`}
-              className="group absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[4px] whitespace-nowrap rounded-[80px] py-[2px] pl-[2px] pr-[7px] outline-none focus-visible:ring-2 focus-visible:ring-white"
-              style={{
-                left: pct(one.plot.x + one.plot.width * 0.5, DESIGN_FRAME.width),
-                top: pct(
-                  one.plot.y + one.plot.height * 0.5 + seen * 16 - (seen > 0 ? 8 : 0),
-                  DESIGN_FRAME.height
-                ),
-                backgroundColor: flagged ? 'rgba(176,0,32,0.92)' : 'rgba(0,0,0,0.72)',
-              }}
+              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-[3px] outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              {/*
-                A plain dot, not the worker's initial. The label beside it is
-                already their name, so the initial only read as a stutter —
-                "J Jo". The marker earns its space only when it is saying
-                something the label is not, which is what the cross does.
-              */}
-              <span
-                className={`flex h-[13px] w-[13px] items-center justify-center rounded-full ${
-                  flagged ? 'bg-white text-[#B00020]' : 'bg-white/90'
-                }`}
-              >
-                {flagged ? (
-                  <Icon name="x" size={8} />
-                ) : (
-                  <span className="h-[5px] w-[5px] rounded-full bg-black/70" />
-                )}
+              <span className="relative flex items-center justify-center">
+                {/* The halo. Present tense — somebody is on this block now. */}
+                <motion.span
+                  aria-hidden
+                  animate={{ opacity: [0.45, 0.12, 0.45], scale: [1, 1.75, 1] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute h-[18px] w-[18px] rounded-full"
+                  style={{ backgroundColor: flagged ? '#B00020' : '#0065F0' }}
+                />
+                <span
+                  className="relative flex h-[18px] w-[18px] items-center justify-center rounded-full border-[2px] border-white text-[8px] font-semibold leading-none text-white"
+                  style={{
+                    backgroundColor: flagged ? '#B00020' : '#0065F0',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.45)',
+                  }}
+                >
+                  {flagged ? <Icon name="x" size={8} /> : one.shortName.slice(0, 1)}
+                </span>
               </span>
-              <span className="text-[10px] font-medium leading-[1.2] text-white">
+
+              <span
+                className="whitespace-nowrap rounded-[80px] px-[6px] py-[1px] text-[9px] font-medium leading-[1.25] text-white"
+                style={{
+                  backgroundColor: flagged ? 'rgba(176,0,32,0.92)' : 'rgba(0,0,0,0.7)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+                }}
+              >
                 {one.shortName}
               </span>
             </motion.button>

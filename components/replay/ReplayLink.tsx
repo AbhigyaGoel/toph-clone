@@ -8,15 +8,17 @@ interface ReplayLinkProps {
 }
 
 /**
- * The way into the replay, from the two screens it follows on from.
+ * The contextual way in, from the archive.
  *
- * On the Map, because the replay is that map with time added. On the Dashboard,
- * because "what happened yesterday" is the first question of the morning and a
- * table answers it one row at a time.
+ * The replay has its own rail item — that is how you reach it from anywhere,
+ * including the home page. This is the second entry point, and it sits on
+ * Activity Logs because that is the screen where you are already looking at a
+ * list of what happened and the obvious next thought is "show me that as a
+ * day".
  *
- * A link rather than a nav item: the rail already lists nine destinations, and
- * the replay is a thing you do *to* a day rather than a place the farm's data
- * lives.
+ * It used to sit on the Map instead, which was the wrong shelf: the Map is the
+ * farm's *present* state — what is closed right now, what was worked recently —
+ * and nobody opens a live view to watch yesterday.
  */
 export function ReplayLink({ tone = 'quiet' }: ReplayLinkProps) {
   const solid = tone === 'solid';

@@ -1,10 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useCallback, useEffect, useRef } from 'react';
 
 import { Icon } from '@/components/ui/Icon';
-import { SPRING_SOFT } from '@/lib/motion';
 import { clockLabel, type ReplayDay } from '@/lib/replay';
 
 interface TimelineProps {
@@ -51,7 +49,8 @@ export function Timeline({
   const track = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const span = Math.max(1, day.endMinute - day.startMinute);
-  const progress = (minute - day.startMinute) / span;
+  /** One number for both the fill and the handle, so they cannot disagree. */
+  const clamped = Math.min(1, Math.max(0, (minute - day.startMinute) / span));
 
   /*
    * The clock the loop advances, mirrored into a ref.
@@ -190,11 +189,19 @@ export function Timeline({
       >
         <span className="absolute left-0 right-0 top-[13px] h-[6px] rounded-[80px] bg-black/[0.07]" />
 
-        <motion.span
-          animate={{ scaleX: Math.min(1, Math.max(0, progress)) }}
-          transition={{ duration: 0 }}
-          style={{ transformOrigin: 'left' }}
-          className="absolute left-0 right-0 top-[13px] h-[6px] rounded-[80px] bg-black/70"
+        {/*
+          Fill and handle are both plain `style`, driven by the same number.
+
+          They used to animate independently — the fill instant, the handle on a
+          spring — so dragging quickly left the handle chasing the end of the
+          fill, and the two visibly came apart. Nothing about a scrubber should
+          be animated: the value already changes every frame during playback,
+          which is where the smoothness comes from, and during a drag the only
+          correct position is the one under the pointer.
+        */}
+        <span
+          style={{ width: `${clamped * 100}%` }}
+          className="absolute left-0 top-[13px] h-[6px] rounded-[80px] bg-black/70"
         />
 
         {/* Where somebody was on a closed field. */}
@@ -207,9 +214,8 @@ export function Timeline({
           />
         ))}
 
-        <motion.span
-          animate={{ left: `${Math.min(100, Math.max(0, progress * 100))}%` }}
-          transition={SPRING_SOFT}
+        <span
+          style={{ left: `${clamped * 100}%` }}
           className="pointer-events-none absolute top-[8px] h-[18px] w-[18px] -translate-x-1/2 rounded-full border-2 border-white bg-black shadow-chip"
         />
 

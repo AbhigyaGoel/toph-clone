@@ -157,3 +157,74 @@ export function findIncursions(
 
   return found.sort((a, b) => a.presence.startMinute - b.presence.startMinute);
 }
+
+/**
+ * Where a worker is inside their block at a given moment.
+ *
+ * A dot parked at the centre of a field for four hours is the wrong picture of
+ * farm work in the most basic way: nobody stands still. Harvesting, spraying and
+ * weeding are all *traversals* — you work a row to the end, turn, and come back
+ * down the next one — so the path here is a serpentine across the block, which
+ * is what the tractor lines in the satellite tile underneath actually are.
+ *
+ * Deterministic on purpose. The position is a pure function of the log and the
+ * minute, so scrubbing backwards puts the worker exactly where they were, and
+ * the same demo runs the same way twice. Nothing is simulated frame to frame;
+ * there is no state to drift.
+ *
+ * This is an interpolation, not a claim. The farm records where the work
+ * happened (the field) and when it started and ended; it does not carry GPS
+ * breadcrumbs. What the dot asserts — this person, this block, this hour — is
+ * exactly what the log says, and the `map_pin` on the recording is still the one
+ * point the data genuinely knows.
+ */
+export function workerPosition(
+  plot: MapPlot,
+  progress: number,
+  seed: number
+): { readonly x: number; readonly y: number } {
+  /** Keeps the path off the plot's border so a dot never straddles the edge. */
+  const INSET = 0.18;
+  /** Passes across the block. Four reads as working rows; twenty reads as noise. */
+  const ROWS: number = 4;
+
+  const left = plot.x + plot.width * INSET;
+  const top = plot.y + plot.height * INSET;
+  const width = plot.width * (1 - INSET * 2);
+  const height = plot.height * (1 - INSET * 2);
+
+  const t = Math.min(1, Math.max(0, progress));
+  const travelled = t * ROWS;
+  const row = Math.min(ROWS - 1, Math.floor(travelled));
+  const along = travelled - row;
+
+  // Odd rows run the other way, which is what makes it a traversal rather than
+  // a carriage return.
+  const across = row % 2 === 0 ? along : 1 - along;
+
+  // A per-worker lane offset, so two people on one block work alongside each
+  // other instead of on top of each other.
+  const lane = ROWS === 1 ? 0.5 : row / (ROWS - 1);
+  const offset = ((seed % 9) / 9 - 0.5) * 0.14;
+
+  return {
+    x: left + width * across,
+    y: top + height * Math.min(1, Math.max(0, lane + offset)),
+  };
+}
+
+/** A small stable number from a log id, for the lane offset. */
+export function seedFrom(id: string): number {
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+/** How far through their shift somebody is at this minute, 0 to 1. */
+export function shiftProgress(presence: ReplayPresence, minute: number): number {
+  const span = presence.endMinute - presence.startMinute;
+  if (span <= 0) return 0;
+  return (minute - presence.startMinute) / span;
+}

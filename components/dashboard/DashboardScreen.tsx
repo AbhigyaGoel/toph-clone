@@ -2,7 +2,6 @@ import { LogQueryProvider } from '@/components/dashboard/LogQueryProvider';
 import { AttentionBanner } from '@/components/dashboard/AttentionBanner';
 import { LogsPanel } from '@/components/dashboard/LogsPanel';
 import { ReportButton } from '@/components/dashboard/ReportButton';
-import { ReplayLink } from '@/components/replay/ReplayLink';
 import { ScrollToOpenLog } from '@/components/dashboard/ScrollToOpenLog';
 import { SearchField } from '@/components/dashboard/SearchField';
 import { StatCardRow } from '@/components/dashboard/StatCardRow';
@@ -80,7 +79,6 @@ export function DashboardScreen({
         subtitle="An overview of your farm and employee activity"
         actions={
           <>
-            <ReplayLink />
             <ReportButton />
             <SearchField />
           </>

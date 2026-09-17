@@ -1,5 +1,4 @@
 import { MapScreen } from '@/components/map/MapScreen';
-import { ReplayLink } from '@/components/replay/ReplayLink';
 import { Screen } from '@/components/shell/Screen';
 import { EMPTY_LOG_QUERY, type RawSearchParams } from '@/lib/logQuery';
 import { findApplicationRecords } from '@/lib/repositories/applications';
@@ -38,11 +37,7 @@ export default async function MapPage({ searchParams }: MapPageProps) {
   ]);
 
   return (
-    <Screen
-      title="Map"
-      subtitle="Every block, and what has happened on it"
-      actions={<ReplayLink tone="solid" />}
-    >
+    <Screen title="Map" subtitle="Every block, and what has happened on it">
       <MapScreen fields={fields} records={records} logs={logs} selectedId={selectedId} />
     </Screen>
   );

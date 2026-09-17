@@ -19,6 +19,10 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: 'chart-line', href: '/' },
       { id: 'activity-logs', label: 'Activity Logs', icon: 'audio-lines', href: '/activity-logs' },
+      // Beside Activity Logs, not beside Map. Both are the farm's history; the
+      // Map is its present state, and hanging a replay off a *live* map was the
+      // wrong shelf — you do not go to a live view to look at yesterday.
+      { id: 'replay', label: 'Day Replay', icon: 'play', href: '/replay' },
       { id: 'map', label: 'Map', icon: 'map', href: '/map' },
     ],
   },
