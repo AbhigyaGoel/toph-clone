@@ -1,0 +1,18 @@
+node_modules/
+.next/
+out/
+build/
+
+# Every .env variant, not just *.local. One of these now holds the Supabase
+# secret key, which bypasses Row Level Security — a file named `.env` or
+# `.env.production` instead would otherwise be committed. .env.example is
+# re-admitted below because it holds only placeholders.
+.env*
+!.env.example
+
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+.vercel
+.env*

@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * The dashboard frame now fills the viewport, so nothing shows behind it. The
+ * page is painted the frame's own white to avoid a flash of a different colour
+ * before first paint, and to keep the overscroll gutter from going dark.
+ */
+html,
+body {
+  background-color: #ffffff;
+}
+
+/*
+ * stroke_VHY27X — the navigation rail is stroked with a vertical gradient,
+ * which `border-color` cannot express.
+ *
+ * Drawing it as a masked pseudo-element rather than a real border matters:
+ * Figma's stroke is inside-aligned and does not inset the frame's content, so a
+ * `border: 1px` here would shift every item in the rail by a pixel.
+ *
+ * The 0.15 alpha is not in the design's stroke definition — the MCP export
+ * reports both gradient stops at full opacity — but it is unmistakable in the
+ * rendered frame. Sampling the exported PNG down the rail's right edge gives
+ * 242 at the top and 231 at the bottom over white; solving those against the
+ * #A6A6A6 -> #595959 ramp yields alpha 0.146 and 0.145. At full strength the
+ * rail reads as a hard outlined card instead of the hairline the design shows.
+ */
+.nav-gradient-border {
+  position: relative;
+  background-color: #ffffff;
+}
+
+.nav-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(166, 166, 166, 0.15) 0%, rgba(89, 89, 89, 0.15) 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/*
+ * fill_KJC099 — the satellite tile is placed with a Figma crop transform of
+ * scale (0.85531, 0.86639) at offset (0.14528, 0.06549). Converted to CSS:
+ * size = 1/scale, position = offset / (1 - scale).
+ */
+.field-map-image {
+  background-image: url('/assets/map-overlay.png');
+  background-size: 116.9167% 115.4213%;
+  background-position: 100.41% 49.02%;
+  background-repeat: no-repeat;
+}
