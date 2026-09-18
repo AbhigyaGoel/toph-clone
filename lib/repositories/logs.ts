@@ -214,6 +214,12 @@ const detailSchema = z.object({
   id: z.string().uuid(),
   fields: z.object({ map_plot: plotSchema }),
   activity_types: z.object({ requires_product: z.boolean() }),
+  /**
+   * Ids only, and only so the history can be fetched in the same round trip as
+   * everything else. The records themselves still come from the register view,
+   * which derives the interval dates every screen agrees on.
+   */
+  applications: z.array(z.object({ id: z.string().uuid() })).default([]),
   // Nullable: the join is a left join, and a log created on the dashboard has
   // no recording until one is uploaded.
   recordings: z
@@ -256,7 +262,7 @@ export async function findLogDetails(
   const { data, error } = await getSupabase()
     .from('activity_logs')
     .select(
-      'id, field_id, fields ( map_plot, name ), activity_types!inner ( requires_product ), recordings ( id, transcript, transcript_en, language, extracted_fields, duration_seconds, audio_url, audio_path, waveform, map_pin )'
+      'id, field_id, fields ( map_plot, name ), activity_types!inner ( requires_product ), applications ( id ), recordings ( id, transcript, transcript_en, language, extracted_fields, duration_seconds, audio_url, audio_path, waveform, map_pin )'
     )
     .in('id', [...logIds])
     .eq('org_id', orgId);
@@ -266,19 +272,23 @@ export async function findLogDetails(
   }
 
   const rows = z.array(detailSchema).parse(data ?? []);
-  const [tagsByLog, records, audioUrls] = await Promise.all([
+
+  /*
+   * Everything else in one batch, not two.
+   *
+   * The history used to wait for the application records, because it needs each
+   * record's id — so opening a row was three round trips deep: the log, then
+   * its records, then its history. The select above now carries `applications (
+   * id )`, which is the only thing the history wanted from that second trip, so
+   * both can go together. On Vercel, where every trip crosses a region
+   * boundary, removing one is worth more than any amount of query tuning.
+   */
+  const [tagsByLog, records, audioUrls, restrictions, history] = await Promise.all([
     findTagsForLogs(orgId, rows.map((row) => row.id)),
     findApplicationRecordsForLogs(orgId, rows.map((row) => row.id)),
     // Ingested audio lives in a private bucket, so its URL is minted per
     // request and expires. A static file under /public keeps its plain path.
     signAll(rows.map((row) => row.recordings?.audio_path ?? null)),
-  ]);
-
-  // Both run after the query above — a log's history includes its application
-  // records and its recording, and those ids are only known once it returns —
-  // but they do not depend on each other, so they go together. They were
-  // sequential, which made opening a row three round trips deep instead of two.
-  const [restrictions, history] = await Promise.all([
     findRestrictedFields(orgId),
     historyForEntities(
       orgId,
@@ -287,9 +297,9 @@ export async function findLogDetails(
           row.id,
           [
             { type: 'log' as const, id: row.id },
-            ...(records.get(row.id) ?? []).map((record) => ({
+            ...(row.applications ?? []).map((application) => ({
               type: 'application' as const,
-              id: record.id,
+              id: application.id,
             })),
             ...(row.recordings ? [{ type: 'recording' as const, id: row.recordings.id }] : []),
           ],

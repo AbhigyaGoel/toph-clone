@@ -10,9 +10,8 @@ import {
 } from '@/lib/inbox';
 import { parseLogQuery, type LogQuery, type RawSearchParams } from '@/lib/logQuery';
 import {
-  findApplicationRecordsForLogs,
+  findApplicationRecords,
   findProducts,
-  findRateObservations,
   findRestrictedFields,
 } from '@/lib/repositories/applications';
 import { findFilterOptions } from '@/lib/repositories/filterOptions';
@@ -22,6 +21,7 @@ import { findReferenceData } from '@/lib/repositories/reference';
 import { findDashboardStats } from '@/lib/repositories/stats';
 import type {
   ActivityLog,
+  ApplicationRecord,
   DashboardStats,
   FilterOptions,
   LogDetail,
@@ -81,8 +81,18 @@ export async function loadDashboard(searchParams: RawSearchParams): Promise<Dash
   const organization = await findOrganization();
   const query = parseLogQuery(searchParams);
 
-  const [stats, filterOptions, reference, logs, details, inputs, products, exceptionInputs, restricted, rates] =
-    await Promise.all([
+  const [
+    stats,
+    filterOptions,
+    reference,
+    logs,
+    details,
+    inputs,
+    products,
+    exceptionInputs,
+    restricted,
+    applications,
+  ] = await Promise.all([
     findDashboardStats(organization.id),
     findFilterOptions(organization.id),
     findReferenceData(organization.id),
@@ -92,16 +102,42 @@ export async function loadDashboard(searchParams: RawSearchParams): Promise<Dash
     findProducts(organization.id),
     findExceptionInputs(organization.id),
     findRestrictedFields(organization.id),
-    findRateObservations(organization.id),
+    findApplicationRecords(organization.id),
   ]);
 
-  // Scoped to the logs triage actually looks at. This used to read every
-  // application record the farm had ever filed — a whole-table scan to answer a
-  // question about forty rows.
-  const recordsByLog = await findApplicationRecordsForLogs(
-    organization.id,
-    exceptionInputs.map((input) => input.logId)
-  );
+  /*
+   * One read of the register, used twice.
+   *
+   * The compliance checks needed the records grouped by log, and the anomaly
+   * baseline needed the same rows as a flat list. They were two queries — and
+   * the grouped one ran *after* the batch above, because it took its log ids
+   * from `exceptionInputs`. That made it a serial round trip on the critical
+   * path of every navigation, including opening a row, where the only thing
+   * actually new is one log's detail. Expanding a row measured about a second
+   * on Vercel, and this was a guaranteed slice of it.
+   *
+   * The register is the smallest table the farm has — one row per product per
+   * application — so reading it whole costs less than the extra trip did.
+   */
+  const recordsByLog = new Map<string, ApplicationRecord[]>();
+  for (const record of applications) {
+    const bucket = recordsByLog.get(record.logId);
+    if (bucket) bucket.push(record);
+    else recordsByLog.set(record.logId, [record]);
+  }
+
+  const rates = applications.map((record) => ({
+    applicationId: record.id,
+    logId: record.logId,
+    employeeId: record.applicator,
+    employeeName: record.applicator,
+    productId: record.productId,
+    productName: record.productName,
+    rateUnit: record.rateUnit,
+    rate: record.rate,
+    appliedAt: record.startedAt,
+    fieldName: record.fieldName,
+  }));
 
   const attention = summarise(
     sortInbox([
