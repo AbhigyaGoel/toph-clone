@@ -14,9 +14,8 @@ import { parseLogQuery, toSearchString, type RawSearchParams, type StatedKey } f
 const ARCHIVE_STATED: readonly StatedKey[] = ['range', 'sort'];
 import { can } from '@/lib/permissions';
 import { findLogCompliance, findProducts } from '@/lib/repositories/applications';
-import { findFilterOptions } from '@/lib/repositories/filterOptions';
 import { findLogDetails, findLogs } from '@/lib/repositories/logs';
-import { findReferenceData } from '@/lib/repositories/reference';
+import { filterOptionsFrom, findReferenceData } from '@/lib/repositories/reference';
 import { currentViewer } from '@/lib/viewer';
 
 export const dynamic = 'force-dynamic';
@@ -60,9 +59,8 @@ export default async function ActivityLogsPage({ searchParams }: ActivityLogsPag
 
   const viewer = await currentViewer();
 
-  const [logs, filterOptions, details, products, reference] = await Promise.all([
+  const [logs, details, products, reference] = await Promise.all([
     findLogs(viewer.organization.id, query),
-    findFilterOptions(viewer.organization.id),
     findLogDetails(viewer.organization.id, query.open),
     findProducts(viewer.organization.id),
     findReferenceData(viewer.organization.id),
@@ -88,7 +86,7 @@ export default async function ActivityLogsPage({ searchParams }: ActivityLogsPag
         <ActivityLogsScreen
           logs={logs}
           records={Object.fromEntries(compliance)}
-          filterOptions={filterOptions}
+          filterOptions={filterOptionsFrom(reference)}
           details={details}
           products={products}
           reference={reference}

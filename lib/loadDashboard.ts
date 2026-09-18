@@ -14,10 +14,9 @@ import {
   findProducts,
   findRestrictedFields,
 } from '@/lib/repositories/applications';
-import { findFilterOptions } from '@/lib/repositories/filterOptions';
 import { findExceptionInputs, findLogDetails, findLogInputs, findLogs } from '@/lib/repositories/logs';
 import { findOrganization } from '@/lib/repositories/organization';
-import { findReferenceData } from '@/lib/repositories/reference';
+import { filterOptionsFrom, findReferenceData } from '@/lib/repositories/reference';
 import { findDashboardStats } from '@/lib/repositories/stats';
 import type {
   ActivityLog,
@@ -83,7 +82,6 @@ export async function loadDashboard(searchParams: RawSearchParams): Promise<Dash
 
   const [
     stats,
-    filterOptions,
     reference,
     logs,
     details,
@@ -94,7 +92,6 @@ export async function loadDashboard(searchParams: RawSearchParams): Promise<Dash
     applications,
   ] = await Promise.all([
     findDashboardStats(organization.id),
-    findFilterOptions(organization.id),
     findReferenceData(organization.id),
     findLogs(organization.id, query),
     findLogDetails(organization.id, query.open),
@@ -157,7 +154,7 @@ export async function loadDashboard(searchParams: RawSearchParams): Promise<Dash
   return {
     organization,
     stats,
-    filterOptions,
+    filterOptions: filterOptionsFrom(reference),
     reference,
     query,
     logs,

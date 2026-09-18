@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { getSupabase, RepositoryError } from '@/lib/supabase/server';
-import type { ReferenceData, ReferenceItem } from '@/lib/types';
+import type { FilterOptions, ReferenceData, ReferenceItem } from '@/lib/types';
 
 /**
  * The reference rows behind the table's columns, with their usage counts.
@@ -91,5 +91,29 @@ export async function findReferenceData(orgId: string): Promise<ReferenceData> {
       .array(tagSchema)
       .parse(tags.data)
       .map((row) => ({ id: row.id, name: row.name, logCount: toCount(row.log_tags) })),
+  };
+}
+
+/**
+ * The Filter menu's lists, derived from reference data already in hand.
+ *
+ * These used to be their own four queries against the same four tables —
+ * `activity_types`, `fields`, `employees`, `tags` — that `findReferenceData`
+ * had just read. Eight PostgREST calls for one set of rows, on every request,
+ * including the one that only wanted to open a log. The reference rows are a
+ * superset (ids and usage counts as well as names), so the flat lists fall out
+ * of them for free.
+ *
+ * Employees are still filtered to the active ones: a filter offering somebody
+ * who left would return nothing and look broken.
+ */
+export function filterOptionsFrom(reference: ReferenceData): FilterOptions {
+  return {
+    activities: reference.activityTypes.map((item) => item.name),
+    fields: reference.fields.map((item) => item.name),
+    employees: reference.employees
+      .filter((item) => item.isActive !== false)
+      .map((item) => item.name),
+    tags: reference.tags.map((item) => item.name),
   };
 }
