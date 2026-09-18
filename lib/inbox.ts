@@ -205,11 +205,6 @@ export function sortInbox(items: readonly InboxItem[]): readonly InboxItem[] {
   );
 }
 
-/** How many items are still waiting, for the count on the rail. */
-export function unreadCount(items: readonly InboxItem[]): number {
-  return items.length;
-}
-
 function describe(
   warnings: number,
   lowConfidence: boolean,

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { FieldWorker } from '@/lib/repositories/fields';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
@@ -23,6 +24,8 @@ interface MapScreenProps {
   readonly records: readonly ApplicationRecord[];
   readonly logs: readonly ActivityLog[];
   readonly selectedId: string | null;
+  /** Who is out right now, and where everyone else last was. */
+  readonly workers: readonly FieldWorker[];
 }
 
 /** A field counts as active if it was worked inside this window. */
@@ -40,7 +43,7 @@ const RECENT_DAYS = 30;
  * Selection is in the URL so a field is a link you can send to someone: "go
  * look at Field K" is the most common thing said about a map.
  */
-export function MapScreen({ fields, records, logs, selectedId }: MapScreenProps) {
+export function MapScreen({ fields, records, logs, selectedId, workers }: MapScreenProps) {
   const router = useRouter();
 
   const restrictions = useMemo(() => byField(records), [records]);
@@ -87,11 +90,19 @@ export function MapScreen({ fields, records, logs, selectedId }: MapScreenProps)
                 <FarmMap
                   fields={fields}
                   states={states}
+                  workers={workers}
+                  onSelectWorker={(logId) => router.push(`/activity-logs?range=all&sort=date-desc&open=${logId}`)}
                   selectedId={selectedId}
                   onSelect={select}
                 />
               </div>
-              <MapLegend counts={counts} />
+              <MapLegend
+                  counts={counts}
+                  crew={{
+                    working: workers.filter((one) => one.working).length,
+                    lastSeen: workers.filter((one) => !one.working).length,
+                  }}
+                />
             </Panel>
           </div>
 

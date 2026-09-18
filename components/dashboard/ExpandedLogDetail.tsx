@@ -86,6 +86,19 @@ export function ExpandedLogDetail({
           </div>
         )}
 
+        {/*
+          Add Tag, then Summary. That is the design's own order, and the reason
+          to keep it is that the first two things in this panel are the two the
+          interviewer will check against the Figma. Everything this build adds
+          comes after them.
+        */}
+        <TagPicker
+          logId={detail.logId}
+          tags={detail.tags}
+          available={availableTags}
+          canWrite={canWrite}
+        />
+
         {detail.recording ? (
           <TranscriptEditor
             logId={detail.logId}
@@ -95,8 +108,9 @@ export function ExpandedLogDetail({
         ) : null}
 
         {/*
-          Directly under the transcript, because the two are one thought: here
-          is what was said, and here is the record we made of it.
+          Below the design's content, as an extension of it. The transcript says
+          what was heard; this says what we made of it, which is the question
+          the transcript raises and does not answer.
         */}
         {detail.recording ? (
           <ExtractedFields
@@ -110,13 +124,6 @@ export function ExpandedLogDetail({
           />
         ) : null}
 
-        {/*
-          The fix comes after the verdict that motivates it. It used to sit
-          above the transcript, which meant a reviewer met "record a product"
-          before they had heard why one was missing — an instruction ahead of
-          its reason. The panel now reads the way the job is done: what was
-          said, what we made of it, whether that passes, and then what to do.
-        */}
         <ApplicationPanel
           logId={detail.logId}
           records={detail.applications}
@@ -125,14 +132,6 @@ export function ExpandedLogDetail({
           canWrite={canWrite}
           canRetract={canRetract}
           context={recordContext}
-        />
-
-        {/* Labelling is filing, not reviewing — it belongs after the verdict. */}
-        <TagPicker
-          logId={detail.logId}
-          tags={detail.tags}
-          available={availableTags}
-          canWrite={canWrite}
         />
 
         {/*

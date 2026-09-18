@@ -2,7 +2,7 @@ import { MapScreen } from '@/components/map/MapScreen';
 import { Screen } from '@/components/shell/Screen';
 import { EMPTY_LOG_QUERY, type RawSearchParams } from '@/lib/logQuery';
 import { findApplicationRecords } from '@/lib/repositories/applications';
-import { findFieldOverviews } from '@/lib/repositories/fields';
+import { findFieldOverviews, findFieldWorkers } from '@/lib/repositories/fields';
 import { findLogs } from '@/lib/repositories/logs';
 import { currentViewer } from '@/lib/viewer';
 
@@ -30,15 +30,22 @@ export default async function MapPage({ searchParams }: MapPageProps) {
   const raw = typeof searchParams.field === 'string' ? searchParams.field.toLowerCase() : '';
   const selectedId = UUID.test(raw) ? raw : null;
 
-  const [fields, records, logs] = await Promise.all([
+  const [fields, records, logs, workers] = await Promise.all([
     findFieldOverviews(viewer.organization.id),
     findApplicationRecords(viewer.organization.id),
     findLogs(viewer.organization.id, { ...EMPTY_LOG_QUERY, q: '', open: [], sort: 'date-desc' }),
+    findFieldWorkers(viewer.organization.id),
   ]);
 
   return (
     <Screen title="Map" subtitle="Every block, and what has happened on it">
-      <MapScreen fields={fields} records={records} logs={logs} selectedId={selectedId} />
+      <MapScreen
+        fields={fields}
+        records={records}
+        logs={logs}
+        workers={workers}
+        selectedId={selectedId}
+      />
     </Screen>
   );
 }

@@ -16,3 +16,11 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Working notes and local tooling — not part of what is being handed over.
+# DEFENSE.md is the reasoning log this build was developed against; it stays on
+# disk because it is useful, and out of the repo because the repo is the
+# deliverable.
+DEFENSE.md
+.mcp.json
+.figma-ref/

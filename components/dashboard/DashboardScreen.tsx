@@ -88,15 +88,6 @@ export function DashboardScreen({
           <StatCardRow stats={stats} />
         </PageEntrance>
 
-        {/*
-          Between the numbers and the table, which is the order the manager
-          reads in: how did yesterday go, what needs me, then the detail. Above
-          the table because the table is what it saves them from having to read.
-        */}
-        <PageEntrance index={2}>
-          <AttentionBanner summary={attention} />
-        </PageEntrance>
-
         <PageEntrance index={3} fill={expanded}>
           <LogsPanel
             title={`New Employee Logs (${logs.length})`}
@@ -112,6 +103,21 @@ export function DashboardScreen({
             editables={editables}
             flaggedLogIds={flaggedLogIds}
           />
+        </PageEntrance>
+
+        {/*
+          Below the table, not above it.
+
+          The Figma's dashboard is three stat cards and then the log table, and
+          this sat between them — pushing the table 64px down and changing the
+          first thing anybody sees. Nothing added to this screen gets to move
+          what the design already put there, so the summary reads as a footer to
+          the table it is about. The count that actually needs to interrupt
+          somebody is on the rail's inbox badge, which is where the design put an
+          inbox affordance anyway.
+        */}
+        <PageEntrance index={4}>
+          <AttentionBanner summary={attention} />
         </PageEntrance>
       </Screen>
     </LogQueryProvider>

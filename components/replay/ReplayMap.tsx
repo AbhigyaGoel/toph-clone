@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { DESIGN_FRAME } from '@/components/dashboard/MapSurface';
+import { WorkerMarker } from '@/components/map/WorkerMarker';
 import { Icon } from '@/components/ui/Icon';
 import { EASE_QUICK, SPRING_SOFT } from '@/lib/motion';
 import {
@@ -168,83 +169,31 @@ export function ReplayMap({
       })}
 
       {/*
-        The people, borrowed from Find My.
+        The people. Same marker the live map draws — see `WorkerMarker` for the
+        Find My vocabulary it borrows. Shared rather than reimplemented so a
+        worker cannot come to look like two different things on two maps of the
+        same farm.
 
-        That interface solves exactly this problem — a person on a map, moving,
-        identifiable at a glance, without the marker swallowing the ground it is
-        standing on. The pieces worth taking: a circular avatar with a white
-        ring so it reads against any terrain, the name in a small capsule rather
-        than floating text, a soft halo that says "this is live", and movement
-        that eases rather than teleports.
-
-        The position comes from `workerPosition`, so a dot traverses its block
-        over the shift instead of standing in the middle of it for four hours.
+        Position comes from `workerPosition`, so a dot traverses its block over
+        the shift instead of standing in the middle of it for four hours.
       */}
       <AnimatePresence>
         {active.map((one) => {
           const flagged = incursionLogIds.includes(one.logId);
-          const at = workerPosition(
-            one.plot,
-            shiftProgress(one, minute),
-            seedFrom(one.logId)
-          );
+          const at = workerPosition(one.plot, shiftProgress(one, minute), seedFrom(one.logId));
 
           return (
-            <motion.button
+            <WorkerMarker
               key={one.logId}
-              type="button"
-              initial={{ opacity: 0, scale: 0.4 }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                left: pct(at.x, DESIGN_FRAME.width),
-                top: pct(at.y, DESIGN_FRAME.height),
-              }}
-              exit={{ opacity: 0, scale: 0.4 }}
-              // Position eases, the entrance springs. A linear tween on the
-              // coordinates is what makes a walk look like a walk — a spring
-              // here overshoots every row end and reads as stumbling.
-              transition={{
-                left: { duration: 0.35, ease: 'linear' },
-                top: { duration: 0.35, ease: 'linear' },
-                opacity: EASE_QUICK,
-                scale: SPRING_SOFT,
-              }}
-              onClick={() => onSelectLog(one.logId)}
+              shortName={one.shortName}
+              left={pct(at.x, DESIGN_FRAME.width)}
+              top={pct(at.y, DESIGN_FRAME.height)}
+              state={flagged ? 'flagged' : 'working'}
               title={`${one.employeeName} — ${one.activityName.toLowerCase()} on ${one.fieldName}, ${clockLabel(one.startMinute)}–${clockLabel(one.endMinute)}`}
-              aria-label={`${one.employeeName}, ${one.activityName} on ${one.fieldName}`}
-              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-[3px] outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              <span className="relative flex items-center justify-center">
-                {/* The halo. Present tense — somebody is on this block now. */}
-                <motion.span
-                  aria-hidden
-                  animate={{ opacity: [0.45, 0.12, 0.45], scale: [1, 1.75, 1] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                  className="absolute h-[18px] w-[18px] rounded-full"
-                  style={{ backgroundColor: flagged ? '#B00020' : '#0065F0' }}
-                />
-                <span
-                  className="relative flex h-[18px] w-[18px] items-center justify-center rounded-full border-[2px] border-white text-[8px] font-semibold leading-none text-white"
-                  style={{
-                    backgroundColor: flagged ? '#B00020' : '#0065F0',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.45)',
-                  }}
-                >
-                  {flagged ? <Icon name="x" size={8} /> : one.shortName.slice(0, 1)}
-                </span>
-              </span>
-
-              <span
-                className="whitespace-nowrap rounded-[80px] px-[6px] py-[1px] text-[9px] font-medium leading-[1.25] text-white"
-                style={{
-                  backgroundColor: flagged ? 'rgba(176,0,32,0.92)' : 'rgba(0,0,0,0.7)',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
-                }}
-              >
-                {one.shortName}
-              </span>
-            </motion.button>
+              ariaLabel={`${one.employeeName}, ${one.activityName} on ${one.fieldName}`}
+              onSelect={() => onSelectLog(one.logId)}
+              animatePosition
+            />
           );
         })}
       </AnimatePresence>

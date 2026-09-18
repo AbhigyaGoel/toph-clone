@@ -103,30 +103,6 @@ function isChanges(value: unknown): value is FieldChanges {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** One record's history, newest first. */
-export async function eventsForEntity(
-  orgId: string,
-  entityType: AuditEntityType,
-  entityId: string,
-  limit = 20
-): Promise<readonly AuditEvent[]> {
-  const { data, error } = await getSupabase()
-    .from('audit_events')
-    .select(COLUMNS)
-    .eq('org_id', orgId)
-    .eq('entity_type', entityType)
-    .eq('entity_id', entityId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    logger.error('eventsForEntity', error.message);
-    return [];
-  }
-
-  return (data ?? []).map(toEvent);
-}
-
 /** The whole farm's trail, newest first. */
 export async function recentEvents(orgId: string, limit = 50): Promise<readonly AuditEvent[]> {
   const { data, error } = await getSupabase()

@@ -113,6 +113,15 @@ export function LogsTable({
    */
   const [pendingStatus, setPendingStatus] = useState<ReadonlyMap<string, LogStatus>>(new Map());
   const [selection, setSelection] = useState<Selection>([]);
+  /**
+   * Rows deleted here but not yet gone from the server's answer.
+   *
+   * Held until the revalidation lands rather than cleared on success: the id is
+   * only dropped when a restore puts the log back, so there is no window where
+   * the row reappears for a frame between the action returning and the new rows
+   * arriving.
+   */
+  const [removed, setRemoved] = useState<readonly string[]>([]);
   const [busy, startWrite] = useTransition();
   /**
    * Undo gets its own transition, and that is not tidiness.
@@ -143,7 +152,13 @@ export function LogsTable({
 
   const flagged = useMemo(() => new Set(flaggedLogIds), [flaggedLogIds]);
 
-  const visibleIds = useMemo(() => logs.map((log) => log.id), [logs]);
+  /** The rows as they stand, minus anything deleted in this session. */
+  const present = useMemo(
+    () => (removed.length === 0 ? logs : logs.filter((log) => !removed.includes(log.id))),
+    [logs, removed]
+  );
+
+  const visibleIds = useMemo(() => present.map((log) => log.id), [present]);
   const visibleKey = visibleIds.join(',');
 
   const detailById = useMemo(
@@ -160,12 +175,12 @@ export function LogsTable({
   const shown = useMemo(
     () =>
       pendingStatus.size === 0
-        ? logs
-        : logs.map((log) => {
+        ? present
+        : present.map((log) => {
             const optimistic = pendingStatus.get(log.id);
             return optimistic && optimistic !== log.status ? { ...log, status: optimistic } : log;
           }),
-    [logs, pendingStatus]
+    [present, pendingStatus]
   );
 
   // Once the server agrees, the override is noise — drop it rather than let it
@@ -292,16 +307,23 @@ export function LogsTable({
   const removeLogs = (ids: readonly string[]) => {
     if (ids.length === 0) return;
 
+    // The row leaves on the press, not on the response. Every other write in
+    // this table is optimistic and delete was not, so it alone had a visible
+    // pause between the click and anything happening — on the one action where
+    // hesitation reads as "did that work?" and invites a second click.
+    setRemoved((current) => [...current, ...ids]);
+    setSelection((current) => current.filter((id) => !ids.includes(id)));
+    lastToggled.current = null;
+
     startWrite(async () => {
       const result = await attempt(() => deleteLogs(ids));
 
       if (!result.success) {
+        // Put them back exactly where they were.
+        setRemoved((current) => current.filter((id) => !ids.includes(id)));
         toast.show({ tone: 'error', message: result.error });
         return;
       }
-
-      setSelection((current) => current.filter((id) => !ids.includes(id)));
-      lastToggled.current = null;
 
       // A deleted row cannot stay in `open`, or the next render would ask the
       // server for a panel belonging to a log that no longer exists.
@@ -319,15 +341,21 @@ export function LogsTable({
       toast.show({
         message: deleted === 1 ? 'Log deleted' : `${deleted} logs deleted`,
         durationMs: 8_000,
-        action: { label: 'Undo', onSelect: () => undoDelete(undoToken) },
+        action: { label: 'Undo', onSelect: () => undoDelete(undoToken, ids) },
       });
     });
   };
 
-  const undoDelete = (token: string) => {
+  const undoDelete = (token: string, ids: readonly string[]) => {
     startUndo(async () => {
       const result = await attempt(() => restoreLogs(token));
-      if (!result.success) toast.show({ tone: 'error', message: result.error });
+      if (!result.success) {
+        toast.show({ tone: 'error', message: result.error });
+        return;
+      }
+      // Stop hiding them, or the restored rows would stay invisible behind the
+      // optimistic removal that put them away in the first place.
+      setRemoved((current) => current.filter((id) => !ids.includes(id)));
     });
   };
 
@@ -336,7 +364,7 @@ export function LogsTable({
       <LogsTableHeader
         state={headerState(selection, visibleIds)}
         onToggleAll={handleToggleAll}
-        disabled={logs.length === 0}
+        disabled={present.length === 0}
       />
 
       {/*
