@@ -5,7 +5,7 @@ transcribes it and pulls out the structured detail; a manager reviews it here.
 
 USC LavaLab F26 dev challenge. Next.js 14, Tailwind, Supabase.
 
-**Live:** https://toph-dashboard.vercel.app
+**Live:** https://toph-clone.vercel.app
 
 ## Run it
 
