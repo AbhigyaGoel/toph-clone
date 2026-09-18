@@ -8,7 +8,7 @@ import { fail, ok, type ActionResult } from '@/lib/actionResult';
 import { logger } from '@/lib/logger';
 import { findMember } from '@/lib/repositories/members';
 import { findOrganization } from '@/lib/repositories/organization';
-import { encodeSession, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/session';
+import { encodeSession, SESSION_COOKIE } from '@/lib/session';
 
 /**
  * Signing in and out.
@@ -50,7 +50,12 @@ export async function signInAs(memberId: string): Promise<ActionResult<{ id: str
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      maxAge: SESSION_MAX_AGE,
+      // No `maxAge`, deliberately: this is a session cookie, so closing the
+      // browser ends the session and opening the link again lands on the
+      // sign-in screen rather than dropping straight into somebody else's
+      // dashboard. The signed issue time in the payload still caps how long a
+      // session is valid server-side, which is the half that has to be
+      // enforced rather than requested.
     });
 
     revalidatePath('/', 'layout');

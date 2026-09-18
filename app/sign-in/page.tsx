@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 
+import { ResetDemoButton } from '@/components/nav/ResetDemoButton';
 import { SignInList } from '@/components/nav/SignInList';
 import { findMembers } from '@/lib/repositories/members';
 import { currentViewer, signInAvailable } from '@/lib/viewer';
@@ -28,6 +29,16 @@ export default async function SignInPage() {
   const viewer = await currentViewer();
   const members = await findMembers(viewer.organization.id);
 
+  /*
+   * One account, not three.
+   *
+   * The roster used to offer an admin, a manager and a worker to show the
+   * permission model. The model is still there and still enforced on the
+   * server — it just is not worth three near-identical doors on the way in,
+   * and two of them led to a dashboard that looks the same with fewer buttons.
+   */
+  const signIn = members.filter((member) => member.role === 'admin');
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-white p-[20px]">
       <div className="flex w-full max-w-[420px] flex-col gap-[24px]">
@@ -44,19 +55,21 @@ export default async function SignInPage() {
               {viewer.organization.name}
             </h1>
             <p className="text-[16px] font-normal leading-[1.3] text-[#4D4D4D]">
-              Choose an account to continue
+              Sign in to continue
             </p>
           </div>
         </div>
 
-        <SignInList members={members} />
+        <SignInList members={signIn.length > 0 ? signIn : members.slice(0, 1)} />
 
         <p className="text-center text-[12px] font-normal leading-[1.5] text-black opacity-40">
-          This build authenticates by picking a member and signing the choice into an
-          httpOnly cookie. Whether a role may write is re-checked on the server for
-          every change, so the account you choose here genuinely changes what the app
-          will let you do.
+          There is no password. Signing in writes the choice into an httpOnly cookie,
+          and whether that role may write is re-checked on the server for every change.
         </p>
+
+        <div className="border-t border-black/[0.06] pt-[20px]">
+          <ResetDemoButton />
+        </div>
       </div>
     </div>
   );
