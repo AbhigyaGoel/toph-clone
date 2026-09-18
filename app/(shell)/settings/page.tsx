@@ -105,57 +105,9 @@ export default async function SettingsPage() {
             </Panel>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Panel title="This deployment" icon="cog">
-              <dl className="flex flex-col">
-                <Row
-                  label="Database"
-                  value="Supabase Postgres"
-                  note="Row Level Security grants select to the anonymous role and no writes at all."
-                />
-                <Row
-                  label="Writes"
-                  value={hasWriteCredentials() ? 'Enabled' : 'Read-only'}
-                  note={
-                    hasWriteCredentials()
-                      ? 'Server Actions hold the secret key; the browser never sees it.'
-                      : 'SUPABASE_SECRET_KEY is not set, so every write control explains itself and disables.'
-                  }
-                  tone={hasWriteCredentials() ? 'good' : 'warn'}
-                />
-                <Row
-                  label="Sessions"
-                  value={signInAvailable() ? 'Signed cookie' : 'Unavailable'}
-                  note="httpOnly, sameSite=lax, HMAC-signed. No passwords — the sign-in screen picks a member, and the server re-derives the role from the cookie on every request."
-                />
-                <Row
-                  label="Your access"
-                  value={ROLE_LABELS[role]}
-                  note={ROLE_SUMMARIES[role]}
-                />
-              </dl>
-            </Panel>
-          </div>
         </div>
       </PageEntrance>
 
-      <PageEntrance index={4}>
-        <Panel title="Farm data" icon="cog">
-          <div className="flex flex-col gap-[10px] px-[30px] py-[20px]">
-            <p className="text-[13px] font-normal leading-[1.5] text-[#4D4D4D]">
-              Workers, fields, activity types and tags are edited where they are used: the
-              crew from the Employees screen, and the rest from the Manage dialog in the
-              dashboard&rsquo;s log panel. Both write through the same Server Actions as
-              everything here.
-            </p>
-            <div className="flex flex-wrap gap-[10px] pt-[4px]">
-              <Shortcut href="/employees" icon="users" label="Employees" />
-              <Shortcut href="/" icon="cog" label="Manage farm data" />
-              <Shortcut href="/audit-manager" icon="book-check" label="Audit Manager" />
-            </div>
-          </div>
-        </Panel>
-      </PageEntrance>
     </Screen>
   );
 }

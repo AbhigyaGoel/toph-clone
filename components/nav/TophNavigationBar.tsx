@@ -8,7 +8,6 @@ import { signOut } from '@/app/actions/session';
 import { NavButton } from '@/components/nav/NavButton';
 import { NavProfile } from '@/components/nav/NavProfile';
 import { NavSectionGroup } from '@/components/nav/NavSectionGroup';
-import { SwitchUserDialog } from '@/components/nav/SwitchUserDialog';
 import { CommandPalette } from '@/components/search/CommandPalette';
 import {
   activeNavItemId,
@@ -17,7 +16,7 @@ import {
   NAV_SECTIONS,
   OTHER_SECTION,
 } from '@/lib/data/navigation';
-import type { Member, NavSection, Organization } from '@/lib/types';
+import type { NavSection, Organization } from '@/lib/types';
 
 interface TophNavigationBarProps {
   readonly organization: Organization;
@@ -25,9 +24,6 @@ interface TophNavigationBarProps {
   readonly badgeCount: number;
   /** The same count, on the inbox affordance beside the farm's name. */
   readonly inboxCount: number;
-  /** Everyone who can sign in here, for the Switch User picker. */
-  readonly members: readonly Member[];
-  readonly currentMemberId: string | null;
   readonly className?: string;
   /**
    * Namespaces the travelling highlight's `layoutId`.
@@ -59,13 +55,10 @@ export function TophNavigationBar({
   organization,
   badgeCount,
   inboxCount,
-  members,
-  currentMemberId,
   className = '',
   layoutScope,
 }: TophNavigationBarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [switching, setSwitching] = useState(false);
   const [, startSignOut] = useTransition();
   const pathname = usePathname();
   const router = useRouter();
@@ -93,7 +86,6 @@ export function TophNavigationBar({
   const highlightedId = hoveredId ?? activeId;
 
   const footerActions: Record<string, () => void> = {
-    'switch-user': () => setSwitching(true),
     'log-out': () =>
       startSignOut(async () => {
         await signOut();
@@ -151,12 +143,6 @@ export function TophNavigationBar({
         ))}
       </nav>
 
-      <SwitchUserDialog
-        open={switching}
-        onClose={() => setSwitching(false)}
-        members={members}
-        currentMemberId={currentMemberId}
-      />
     </LayoutGroup>
   );
 }

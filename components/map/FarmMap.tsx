@@ -56,19 +56,21 @@ const insideFrame = (y: number): number =>
  * recently" colour and the screen still looks like the product. Restricted
  * borrows the danger red already used for destructive actions and incomplete
  * records, because "do not walk into this field" is the same class of statement.
- * Idle is a neutral wash rather than nothing at all — an unworked block still
- * has to be findable.
+ * Idle is a grey wash, and grey specifically: it was white, which is also the
+ * colour the selected block's border uses, so a field nobody had worked in
+ * thirty days read as one that was currently selected. Two states cannot share
+ * a colour on a map whose whole job is telling states apart.
  */
 export const STATE_FILL: Record<FieldState, string> = {
   restricted: 'rgba(176,0,32,0.28)',
   recent: 'rgba(0,101,240,0.2)',
-  idle: 'rgba(255,255,255,0.18)',
+  idle: 'rgba(110,110,110,0.30)',
 };
 
 export const STATE_STROKE: Record<FieldState, string> = {
   restricted: 'rgba(176,0,32,0.9)',
   recent: 'rgba(0,101,240,0.75)',
-  idle: 'rgba(255,255,255,0.55)',
+  idle: 'rgba(235,235,235,0.5)',
 };
 
 /**

@@ -77,7 +77,6 @@ export const OTHER_SECTION: NavSection = {
  * does something.
  */
 export const NAV_FOOTER_ITEMS: readonly NavItem[] = [
-  { id: 'switch-user', label: 'Switch User', icon: 'arrow-right-left' },
   { id: 'log-out', label: 'Log Out', icon: 'log-out' },
 ];
 

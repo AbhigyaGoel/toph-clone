@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import { MobileNavProvider } from '@/components/nav/MobileNavProvider';
 import { TophNavigationBar } from '@/components/nav/TophNavigationBar';
-import { findMembers } from '@/lib/repositories/members';
 import { findDashboardStats } from '@/lib/repositories/stats';
 import { currentViewer, signInAvailable } from '@/lib/viewer';
 
@@ -37,10 +36,7 @@ export default async function ShellLayout({ children }: { readonly children: Rea
     redirect('/sign-in');
   }
 
-  const [members, stats] = await Promise.all([
-    findMembers(viewer.organization.id),
-    findDashboardStats(viewer.organization.id),
-  ]);
+  const stats = await findDashboardStats(viewer.organization.id);
 
   const rail = (scope: string, className?: string) => (
     <TophNavigationBar
@@ -51,8 +47,6 @@ export default async function ShellLayout({ children }: { readonly children: Rea
       // holds — assembling the full inbox here would put four queries on the
       // critical path of every screen to draw one dot.
       inboxCount={stats.newLogs}
-      members={members}
-      currentMemberId={viewer.member?.id ?? null}
       className={className}
       layoutScope={scope}
     />
